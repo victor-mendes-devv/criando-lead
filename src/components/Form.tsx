@@ -66,142 +66,181 @@ const LeadForm: React.FC<LeadFormProps> = ({ onSubmit }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <input
-        name="primaryAccountId"
-        placeholder="ID da Conta Principal"
-        value={form.primaryAccountId}
-        onChange={handleChange}
-        className="input"
-      />
-      <input
-        name="createdTime"
-        placeholder="Data de Criação (YYYY-MM-DDTHH:mm:ss±hh:mm)"
-        value={form.createdTime}
-        onChange={handleChange}
-        className="input"
-      />
-      <input
-        name="dueTime"
-        placeholder="Data de Vencimento (YYYY-MM-DDTHH:mm:ss±hh:mm)"
-        value={form.dueTime}
-        onChange={handleChange}
-        className="input"
-      />
-      <input
-        name="marketId"
-        placeholder="ID do Mercado"
-        value={form.marketId}
-        onChange={handleChange}
-        className="input"
-      />
-      <input
-        name="tags"
-        placeholder="Tags (separadas por vírgula)"
-        value={form.tags}
-        onChange={handleChange}
-        className="input"
-      />
-      <input
-        name="accounts"
-        placeholder="IDs de Contas (separados por vírgula)"
-        value={form.accounts}
-        onChange={handleChange}
-        className="input"
-      />
-      <input
-        name="contacts"
-        placeholder="IDs de Contatos (separados por vírgula)"
-        value={form.contacts}
-        onChange={handleChange}
-        className="input"
-      />
-      <input
-        name="sources"
-        placeholder="IDs de Fontes (separados por vírgula)"
-        value={form.sources}
-        onChange={handleChange}
-        className="input"
-      />
-      <input
-        name="confidence"
-        type="number"
-        placeholder="Confiança"
-        value={form.confidence}
-        onChange={handleChange}
-        className="input"
-      />
-      <input
-        name="assigneeId"
-        placeholder="ID do Responsável"
-        value={form.assigneeId}
-        onChange={handleChange}
-        className="input"
-      />
-      <input
-        name="customTracking"
-        placeholder="Tracking #"
-        value={form.customTracking}
-        onChange={handleChange}
-        className="input"
-      />
-      <input
-        name="customDiscountCurrency"
-        placeholder="Moeda do Desconto"
-        value={form.customDiscountCurrency}
-        onChange={handleChange}
-        className="input"
-      />
-      <input
-        name="customDiscountAmount"
-        placeholder="Valor do Desconto"
-        value={form.customDiscountAmount}
-        onChange={handleChange}
-        className="input"
-      />
-      <input
-        name="priority"
-        type="number"
-        placeholder="Prioridade"
-        value={form.priority}
-        onChange={handleChange}
-        className="input"
-      />
-      <textarea
-        name="description"
-        placeholder="Descrição"
-        value={form.description}
-        onChange={handleChange}
-        className="input h-20"
-      />
-      <textarea
-        name="note"
-        placeholder="Notas (uma por linha)"
-        value={form.note}
-        onChange={handleChange}
-        className="input h-20"
-      />
-      <textarea
-        name="products"
-        placeholder="Produtos (JSON array)"
-        value={form.products}
-        onChange={handleChange}
-        className="input h-20"
-      />
-      <textarea
-        name="competitors"
-        placeholder="Concorrentes (JSON array)"
-        value={form.competitors}
-        onChange={handleChange}
-        className="input h-20"
-      />
-      <button
-        type="submit"
-        className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition"
-      >
-        Criar Lead
-      </button>
-    </form>
+    <div className="bg-gray-900 rounded-lg shadow-lg p-8 max-w-xl mx-auto">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <label className="text-yellow-400">ID da Conta Principal</label>
+        <input
+          name="primaryAccountId"
+          value={form.primaryAccountId}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
+        />
+        <label className="text-yellow-400">
+          Data de Criação{" "}
+          <span className="text-xs text-purple-300">
+            (YYYY-MM-DDTHH:mm:ss±hh:mm)
+          </span>
+        </label>
+        <input
+          name="createdTime"
+          value={form.createdTime}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
+        />
+        <label className="text-yellow-400">
+          Data de Vencimento{" "}
+          <span className="text-xs text-purple-300">
+            (YYYY-MM-DDTHH:mm:ss±hh:mm)
+          </span>
+        </label>
+        <input
+          name="dueTime"
+          value={form.dueTime}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
+        />
+        <label className="text-yellow-400">ID do Mercado</label>
+        <input
+          name="marketId"
+          value={form.marketId}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
+        />
+        <label className="text-yellow-400">
+          Tags{" "}
+          <span className="text-xs text-purple-300">
+            (separadas por vírgula)
+          </span>
+        </label>
+        <input
+          name="tags"
+          value={form.tags}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
+        />
+        <label className="text-yellow-400">
+          IDs de Contas{" "}
+          <span className="text-xs text-purple-300">
+            (separados por vírgula)
+          </span>
+        </label>
+        <input
+          name="accounts"
+          value={form.accounts}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
+        />
+        <label className="text-yellow-400">
+          IDs de Contatos{" "}
+          <span className="text-xs text-purple-300">
+            (separados por vírgula)
+          </span>
+        </label>
+        <input
+          name="contacts"
+          value={form.contacts}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
+        />
+        <label className="text-yellow-400">
+          IDs de Fontes{" "}
+          <span className="text-xs text-purple-300">
+            (separados por vírgula)
+          </span>
+        </label>
+        <input
+          name="sources"
+          value={form.sources}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
+        />
+        <label className="text-yellow-400">Confiança</label>
+        <input
+          name="confidence"
+          type="number"
+          value={form.confidence}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
+        />
+        <label className="text-yellow-400">ID do Responsável</label>
+        <input
+          name="assigneeId"
+          value={form.assigneeId}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
+        />
+        <label className="text-yellow-400">Tracking #</label>
+        <input
+          name="customTracking"
+          value={form.customTracking}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
+        />
+        <label className="text-yellow-400">Moeda do Desconto</label>
+        <input
+          name="customDiscountCurrency"
+          value={form.customDiscountCurrency}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
+        />
+        <label className="text-yellow-400">Valor do Desconto</label>
+        <input
+          name="customDiscountAmount"
+          value={form.customDiscountAmount}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
+        />
+        <label className="text-yellow-400">Prioridade</label>
+        <input
+          name="priority"
+          type="number"
+          value={form.priority}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
+        />
+        <label className="text-yellow-400">Descrição</label>
+        <textarea
+          name="description"
+          value={form.description}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full h-20 focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-yellow-400 border-purple-700"
+        />
+        <label className="text-yellow-400">
+          Notas <span className="text-xs text-purple-300">(uma por linha)</span>
+        </label>
+        <textarea
+          name="note"
+          value={form.note}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full h-20 focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-yellow-400 border-purple-700"
+        />
+        <label className="text-yellow-400">
+          Produtos <span className="text-xs text-purple-300">(JSON array)</span>
+        </label>
+        <textarea
+          name="products"
+          value={form.products}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full h-20 focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-yellow-400 border-purple-700"
+        />
+        <label className="text-yellow-400">
+          Concorrentes{" "}
+          <span className="text-xs text-purple-300">(JSON array)</span>
+        </label>
+        <textarea
+          name="competitors"
+          value={form.competitors}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full h-20 focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-yellow-400 border-purple-700"
+        />
+        <button
+          type="submit"
+          className="mt-6 bg-purple-700 hover:bg-yellow-400 hover:text-gray-900 hover:cursor-pointer text-white font-bold py-3 px-6 rounded-lg transition mx-auto w-1/2"
+        >
+          Enviar
+        </button>
+      </form>
+    </div>
   );
 };
 
