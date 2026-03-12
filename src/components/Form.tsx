@@ -1,61 +1,56 @@
 import React, { useMemo, useState } from "react";
 
 interface LeadFormProps {
-  onSubmit?: (data: any) => void;
+  onSubmit?: (data: {
+    accountRequest: Record<string, any>;
+    contactRequest: Record<string, any>;
+    leadRequest: Record<string, any>;
+  }) => void;
 }
 
-// em um projeto real, esses tipos seriam mais detalhados e provavelmente importados de um arquivo de tipos específico para a API da Nutshell
-interface ProductItem {
-  id: number;
-  label: string;
-}
-interface CompetitorItem {
-  id: number;
-  label: string;
+interface FormState {
+  nome: string;
+  email: string;
+  telefone: string;
+  empresa: string;
+  faturamento: string;
 }
 
-interface LeadFormState {
-  dueTime: string;
-  tags: string;
-  description: string;
-  confidence: number;
-  customTracking: string;
-  customDiscountCurrency: string;
-  customDiscountAmount: string;
-  note: string;
-  priority: number;
-}
+const PIPELINE_ID = 23;
+const PRODUCT_ACIMA_50K = 403;
+const PRODUCT_MENOS_50K = 407;
+
+const FATURAMENTO_OPTIONS = [
+  "- 50MIL",
+  "50 MIL A 250 MIL",
+  "250 MIL A 1 MILHAO",
+  "ACIMA DE 1 MILHAO",
+  "NAO TEM",
+];
+
+const FATURAMENTO_ACIMA_50K = [
+  "50 MIL A 250 MIL",
+  "250 MIL A 1 MILHAO",
+  "ACIMA DE 1 MILHAO",
+];
+
+const FATURAMENTO_MENOS_50K = ["- 50MIL", "NAO TEM"];
 
 const LeadForm: React.FC<LeadFormProps> = ({ onSubmit }) => {
-  const [form, setForm] = useState<LeadFormState>({
-    dueTime: "",
-    tags: "",
-    description: "",
-    confidence: 50,
-    customTracking: "32ab",
-    customDiscountCurrency: "BRL",
-    customDiscountAmount: "",
-    note: "",
-    priority: 0,
+  const [form, setForm] = useState<FormState>({
+    nome: "",
+    email: "",
+    telefone: "",
+    empresa: "",
+    faturamento: "",
   });
 
-  const [productInput, setProductInput] = useState("");
-  const [competitorInput, setCompetitorInput] = useState("");
-  const [products, setProducts] = useState<ProductItem[]>([]);
-  const [competitors, setCompetitors] = useState<CompetitorItem[]>([]);
+  const [statusMessage, setStatusMessage] = useState("");
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
-
-    if (name === "confidence" || name === "priority") {
-      setForm((prev) => ({
-        ...prev,
-        [name]: value === "" ? 0 : Number(value),
-      }));
-      return;
-    }
 
     setForm((prev) => ({
       ...prev,
@@ -63,185 +58,133 @@ const LeadForm: React.FC<LeadFormProps> = ({ onSubmit }) => {
     }));
   };
 
-  const addProduct = () => {
-    const value = productInput.trim();
-
-    if (!value) return;
-
-    setProducts((prev) => [
-      ...prev,
-      {
-        id: prev.length + 1,
-        label: value,
-      },
-    ]);
-
-    setProductInput("");
+  const getLeadAmount = () => {
+    return form.faturamento !== "NAO TEM" ? 1 : 2;
   };
 
-  const addCompetitor = () => {
-    const value = competitorInput.trim();
-
-    if (!value) return;
-
-    setCompetitors((prev) => [
-      ...prev,
-      {
-        id: prev.length + 1,
-        label: value,
-      },
-    ]);
-
-    setCompetitorInput("");
-  };
-
-  const removeProduct = (id: number) => {
-    setProducts((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const removeCompetitor = (id: number) => {
-    setCompetitors((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const handleProductKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addProduct();
-    }
-  };
-
-  const handleCompetitorKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-  ) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addCompetitor();
-    }
-  };
-
-  const formatDateOnlyToIsoMidnight = (value: string) => {
-    if (!value) return "";
-
-    return `${value}T00:00:00`;
-  };
-
-  const getTodayAtMidnight = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-    const day = String(today.getDate()).padStart(2, "0");
-
-    return `${year}-${month}-${day}T00:00:00`;
-  };
-
-  const buildLeadPayload = () => {
-    const createdTime = getTodayAtMidnight();
-
-    const tags = form.tags
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean);
-
-    const notes = form.note
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
-
-    const payload: any = {
-      // MOCK: conta principal fixa para simular uma account já existente na Nutshell
-      primaryAccount: { id: 1001 },
-
-      // createdTime gerado automaticamente com hora fixa 00:00:00
-      createdTime,
-
-      // dueTime vindo do formulário com hora fixa 00:00:00
-      dueTime: form.dueTime
-        ? formatDateOnlyToIsoMidnight(form.dueTime)
-        : undefined,
-
-      // MOCK: mercado fixo apenas para treino da estrutura esperada pela API
-      market: { id: 1 },
-
-      tags,
-      description: form.description,
-
-      // MOCK: contas relacionadas fixas para simular vínculos adicionais
-      accounts: [{ id: 1001 }, { id: 1002 }],
-
-      // MOCK: contatos fixos para simular contatos já existentes
-      contacts: [{ id: 501 }, { id: 502 }],
-
-      // Produtos montados a partir de uma UI simples, mas respeitando a estrutura da API
-      products: products.map((product) => ({
-        id: product.id,
-        relationship: `Produto informado no formulário: ${product.label}`,
-        quantity: 1,
-        price: {
-          currency_shortname: "BRL",
-          amount: "100",
+  const getLeadProducts = () => {
+    if (FATURAMENTO_MENOS_50K.includes(form.faturamento)) {
+      return [
+        {
+          id: PRODUCT_MENOS_50K,
+          relationship: "Potentially interested",
+          quantity: 1,
+          price: {
+            currency_shortname: "BRL",
+            amount: "1",
+          },
         },
-      })),
+      ];
+    }
 
-      // Concorrentes montados a partir de uma UI simples, respeitando a estrutura da API
-      competitors: competitors.map((competitor) => ({
-        id: competitor.id,
-        status: 0,
-        relationship: `Concorrente informado no formulário: ${competitor.label}`,
-      })),
+    if (FATURAMENTO_ACIMA_50K.includes(form.faturamento)) {
+      return [
+        {
+          id: PRODUCT_ACIMA_50K,
+          relationship: "Potentially interested",
+          quantity: 1,
+          price: {
+            currency_shortname: "BRL",
+            amount: "1",
+          },
+        },
+      ];
+    }
 
-      // MOCK: source fixa para demonstrar como a API espera esse campo
-      sources: [{ id: 12 }],
+    return [];
+  };
 
-      confidence: Number(form.confidence),
-
-      // MOCK: assignee fixo para simular responsável vindo de regra de negócio
-      assignee: {
-        entityType: "Users",
-        id: 12,
-      },
-
-      customFields: {
-        "Tracking #": form.customTracking,
-        Discount: {
-          currency_shortname: form.customDiscountCurrency || "BRL",
-          amount: form.customDiscountAmount || "0",
+  const buildAccountRequest = () => {
+    const payload: Record<string, any> = {
+      method: "newAccount",
+      params: {
+        account: {
+          name: form.empresa,
         },
       },
-
-      note: notes,
-      priority: Number(form.priority),
-
-      // Fixos no código para simular entrada no começo do funil
-      milestoneId: 1,
-      stagesetId: 1,
     };
 
-    if (!payload.dueTime) {
-      delete payload.dueTime;
+    if (!form.empresa.trim()) {
+      delete payload.params.account.name;
     }
 
-    if (!payload.tags.length) {
-      delete payload.tags;
+    return payload;
+  };
+
+  const buildContactRequest = () => {
+    const payload: Record<string, any> = {
+      method: "newContact",
+      params: {
+        contact: {
+          firstName: form.nome,
+          email: form.email.trim() ? [form.email.trim()] : undefined,
+          phone: form.telefone.trim() ? [form.telefone.trim()] : undefined,
+          accounts: [
+            {
+              relationship: "Empresa relacionada",
+              id: "ID_DA_COMPANY", // Placeholder, deve ser substituído pelo ID real da company criada
+            },
+          ],
+        },
+      },
+    };
+
+    if (!form.nome.trim()) {
+      delete payload.params.contact.firstName;
     }
 
-    if (!payload.description.trim()) {
-      delete payload.description;
+    if (!form.email.trim()) {
+      delete payload.params.contact.email;
     }
 
-    if (!payload.products.length) {
-      delete payload.products;
+    if (!form.telefone.trim()) {
+      delete payload.params.contact.phone;
     }
 
-    if (!payload.competitors.length) {
-      delete payload.competitors;
+    return payload;
+  };
+
+  const buildLeadRequest = () => {
+    const products = getLeadProducts();
+    const amount = getLeadAmount();
+
+    const payload: Record<string, any> = {
+      method: "newLead",
+      params: {
+        lead: {
+          description: form.nome,
+
+          // MOCK: pipeline fixa para estudo
+          stagesetId: PIPELINE_ID,
+
+          // MOCK: este campo sera preenchido com o id real da company apos o newAccount
+          primaryAccount: {
+            id: "ID MOCADO",
+          },
+
+          // MOCK: este campo sera preenchido com o id real do contact apos o newContact
+          contacts: [
+            {
+              id: "ID MOCADO",
+            },
+          ],
+
+          value: {
+            currency: "BRL",
+            amount,
+          },
+
+          products,
+        },
+      },
+    };
+
+    if (!form.nome.trim()) {
+      delete payload.params.lead.description;
     }
 
-    if (!payload.note.length) {
-      delete payload.note;
-    }
-
-    if (!form.customTracking && !form.customDiscountAmount) {
-      delete payload.customFields;
+    if (!products.length) {
+      delete payload.params.lead.products;
     }
 
     return payload;
@@ -249,227 +192,136 @@ const LeadForm: React.FC<LeadFormProps> = ({ onSubmit }) => {
 
   const previewPayload = useMemo(
     () => ({
-      lead: buildLeadPayload(),
+      accountRequest: buildAccountRequest(),
+      contactRequest: buildContactRequest(),
+      leadRequest: buildLeadRequest(),
     }),
-    [form, products, competitors],
+    [form],
   );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const lead = buildLeadPayload();
+    const payloads = {
+      accountRequest: buildAccountRequest(),
+      contactRequest: buildContactRequest(),
+      leadRequest: buildLeadRequest(),
+    };
 
-    if (onSubmit) onSubmit(lead);
+    if (onSubmit) {
+      onSubmit(payloads);
+    }
+
+    setStatusMessage(
+      "Payloads preparados com sucesso. Os ids reais de company e contact devem ser inseridos na etapa da API, apos a criacao.",
+    );
   };
 
   return (
     <div className="bg-gray-900 rounded-lg shadow-lg p-8 max-w-4xl mx-auto">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <h2 className="text-2xl font-bold text-yellow-400 mb-2">
-          Formulário de Lead - Treino Nutshell
+          Formulário de Treino - Fluxo Real Nutshell
         </h2>
 
         <p className="text-sm text-purple-300 mb-4">
-          Alguns campos estão mockados no código para fins de estudo da API.
+          Este formulário prepara os payloads necessários para criar Company,
+          Contact e Lead.
         </p>
 
-        <label className="text-yellow-400">
-          Data de Vencimento{" "}
-          <span className="text-xs text-purple-300">(opcional)</span>
-        </label>
+        <label className="text-yellow-400">Nome</label>
         <input
-          type="date"
-          name="dueTime"
-          value={form.dueTime}
+          name="nome"
+          value={form.nome}
           onChange={handleChange}
+          placeholder="Digite o nome do contato"
           className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
         />
 
-        <label className="text-yellow-400">
-          Tags{" "}
-          <span className="text-xs text-purple-300">
-            (separadas por vírgula)
-          </span>
-        </label>
+        <label className="text-yellow-400">Email</label>
         <input
-          name="tags"
-          value={form.tags}
+          name="email"
+          type="email"
+          value={form.email}
           onChange={handleChange}
-          placeholder="ex: lead quente, inbound, campanha x"
+          placeholder="Digite o email"
           className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
         />
 
-        <label className="text-yellow-400">Confiança</label>
+        <label className="text-yellow-400">Telefone</label>
         <input
-          name="confidence"
-          type="number"
-          min={0}
-          max={100}
-          value={form.confidence}
+          name="telefone"
+          value={form.telefone}
           onChange={handleChange}
+          placeholder="Digite o telefone"
           className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
         />
 
-        <label className="text-yellow-400">
-          Prioridade{" "}
-          <span className="text-xs text-purple-300">
-            (0 = normal, 1 = hot lead)
-          </span>
-        </label>
+        <label className="text-yellow-400">Empresa</label>
         <input
-          name="priority"
-          type="number"
-          min={0}
-          max={1}
-          value={form.priority}
+          name="empresa"
+          value={form.empresa}
           onChange={handleChange}
+          placeholder="Digite o nome da empresa"
           className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
         />
 
-        <label className="text-yellow-400">Tracking #</label>
-        <input
-          name="customTracking"
-          value={form.customTracking}
+        <label className="text-yellow-400">Faturamento</label>
+        <select
+          name="faturamento"
+          value={form.faturamento}
           onChange={handleChange}
-          placeholder="ex: 32ab"
           className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
-        />
-
-        <label className="text-yellow-400">Moeda do Desconto</label>
-        <input
-          name="customDiscountCurrency"
-          value={form.customDiscountCurrency}
-          onChange={handleChange}
-          placeholder="ex: BRL"
-          className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
-        />
-
-        <label className="text-yellow-400">Valor do Desconto</label>
-        <div className="flex items-center border rounded-md w-full focus-within:ring-2 focus-within:ring-purple-700 bg-gray-900 border-purple-700 overflow-hidden">
-          <span className="px-3 text-purple-300 bg-gray-800 border-r border-purple-700">
-            R$
-          </span>
-          <input
-            name="customDiscountAmount"
-            value={form.customDiscountAmount}
-            onChange={handleChange}
-            placeholder="ex: 5000"
-            className="px-3 py-2 w-full focus:outline-none bg-gray-900 text-purple-300"
-          />
-        </div>
-
-        <label className="text-yellow-400">Descrição</label>
-        <textarea
-          name="description"
-          value={form.description}
-          onChange={handleChange}
-          className="border rounded-md px-3 py-2 w-full h-24 focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
-        />
-
-        <label className="text-yellow-400">
-          Notas <span className="text-xs text-purple-300">(uma por linha)</span>
-        </label>
-        <textarea
-          name="note"
-          value={form.note}
-          onChange={handleChange}
-          className="border rounded-md px-3 py-2 w-full h-24 focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
-        />
-
-        <div className="mt-4">
-          <label className="text-yellow-400 block mb-2">Produtos</label>
-
-          <div className="flex gap-2">
-            <input
-              value={productInput}
-              onChange={(e) => setProductInput(e.target.value)}
-              onKeyDown={handleProductKeyDown}
-              placeholder="Digite um produto e pressione Enter"
-              className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
-            />
-            <button
-              type="button"
-              onClick={addProduct}
-              className="bg-purple-700 hover:bg-yellow-400 hover:text-gray-900 text-white font-bold px-4 rounded-lg transition"
-            >
-              +
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-2 mt-3">
-            {products.map((product) => (
-              <div
-                key={product.id}
-                className="flex items-center gap-2 bg-purple-800 text-yellow-300 px-3 py-2 rounded-full"
-              >
-                <span>{product.label}</span>
-                <button
-                  type="button"
-                  onClick={() => removeProduct(product.id)}
-                  className="text-xs font-bold hover:text-white"
-                >
-                  x
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <label className="text-yellow-400 block mb-2">Concorrentes</label>
-
-          <div className="flex gap-2">
-            <input
-              value={competitorInput}
-              onChange={(e) => setCompetitorInput(e.target.value)}
-              onKeyDown={handleCompetitorKeyDown}
-              placeholder="Digite um concorrente e pressione Enter"
-              className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
-            />
-            <button
-              type="button"
-              onClick={addCompetitor}
-              className="bg-purple-700 hover:bg-yellow-400 hover:text-gray-900 text-white font-bold px-4 rounded-lg transition"
-            >
-              +
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-2 mt-3">
-            {competitors.map((competitor) => (
-              <div
-                key={competitor.id}
-                className="flex items-center gap-2 bg-purple-800 text-yellow-300 px-3 py-2 rounded-full"
-              >
-                <span>{competitor.label}</span>
-                <button
-                  type="button"
-                  onClick={() => removeCompetitor(competitor.id)}
-                  className="text-xs font-bold hover:text-white"
-                >
-                  x
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
+        >
+          <option value="">Selecione o faturamento</option>
+          {FATURAMENTO_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
 
         <button
           type="submit"
           className="mt-6 bg-purple-700 hover:bg-yellow-400 hover:text-gray-900 hover:cursor-pointer text-white font-bold py-3 px-6 rounded-lg transition mx-auto w-1/2"
         >
-          Enviar
+          Preparar payloads
         </button>
       </form>
 
-      <div className="mt-10">
-        <h3 className="text-xl font-bold text-yellow-400 mb-3">
-          Preview do payload final
-        </h3>
+      {statusMessage && (
+        <div className="mt-6 border border-green-700 bg-green-900/20 rounded-lg p-4 text-green-300">
+          {statusMessage}
+        </div>
+      )}
 
-        <pre className="bg-black/40 border border-purple-700 rounded-lg p-4 text-sm text-green-300 overflow-x-auto whitespace-pre-wrap">
-          {JSON.stringify(previewPayload, null, 2)}
-        </pre>
+      <div className="mt-10 space-y-6">
+        <div>
+          <h3 className="text-xl font-bold text-yellow-400 mb-3">
+            Preview - newAccount
+          </h3>
+          <pre className="bg-black/40 border border-purple-700 rounded-lg p-4 text-sm text-green-300 overflow-x-auto whitespace-pre-wrap">
+            {JSON.stringify(previewPayload.accountRequest, null, 2)}
+          </pre>
+        </div>
+
+        <div>
+          <h3 className="text-xl font-bold text-yellow-400 mb-3">
+            Preview - newContact
+          </h3>
+          <pre className="bg-black/40 border border-purple-700 rounded-lg p-4 text-sm text-green-300 overflow-x-auto whitespace-pre-wrap">
+            {JSON.stringify(previewPayload.contactRequest, null, 2)}
+          </pre>
+        </div>
+
+        <div>
+          <h3 className="text-xl font-bold text-yellow-400 mb-3">
+            Preview - newLead
+          </h3>
+          <pre className="bg-black/40 border border-purple-700 rounded-lg p-4 text-sm text-green-300 overflow-x-auto whitespace-pre-wrap">
+            {JSON.stringify(previewPayload.leadRequest, null, 2)}
+          </pre>
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import LeadForm from "./components/Form";
-import { createLead } from "./services/api";
+import { createLeadFlow } from "./services/api";
 
 function App() {
   const [loading, setLoading] = useState(false);
@@ -12,7 +12,7 @@ function App() {
     setSuccess(null);
     setError(null);
     try {
-      await createLead(lead);
+      await createLeadFlow(lead);
       setSuccess("Lead criada com sucesso!");
     } catch (err: any) {
       setError("Erro ao criar lead.");
