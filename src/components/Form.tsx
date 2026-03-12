@@ -1,12 +1,5 @@
-import React, { useMemo, useState } from "react";
-
-interface LeadFormProps {
-  onSubmit?: (data: {
-    accountRequest: Record<string, any>;
-    contactRequest: Record<string, any>;
-    leadRequest: Record<string, any>;
-  }) => void;
-}
+import React, { useState } from "react";
+import { createLeadFlow } from "../services/api";
 
 interface FormState {
   nome: string;
@@ -16,10 +9,6 @@ interface FormState {
   faturamento: string;
 }
 
-const PIPELINE_ID = 23;
-const PRODUCT_ACIMA_50K = 403;
-const PRODUCT_MENOS_50K = 407;
-
 const FATURAMENTO_OPTIONS = [
   "- 50MIL",
   "50 MIL A 250 MIL",
@@ -28,15 +17,7 @@ const FATURAMENTO_OPTIONS = [
   "NAO TEM",
 ];
 
-const FATURAMENTO_ACIMA_50K = [
-  "50 MIL A 250 MIL",
-  "250 MIL A 1 MILHAO",
-  "ACIMA DE 1 MILHAO",
-];
-
-const FATURAMENTO_MENOS_50K = ["- 50MIL", "NAO TEM"];
-
-const LeadForm: React.FC<LeadFormProps> = ({ onSubmit }) => {
+const LeadForm: React.FC = () => {
   const [form, setForm] = useState<FormState>({
     nome: "",
     email: "",
@@ -46,6 +27,7 @@ const LeadForm: React.FC<LeadFormProps> = ({ onSubmit }) => {
   });
 
   const [statusMessage, setStatusMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -58,175 +40,60 @@ const LeadForm: React.FC<LeadFormProps> = ({ onSubmit }) => {
     }));
   };
 
-  const getLeadAmount = () => {
-    return form.faturamento !== "NAO TEM" ? 1 : 2;
-  };
-
-  const getLeadProducts = () => {
-    if (FATURAMENTO_MENOS_50K.includes(form.faturamento)) {
-      return [
-        {
-          id: PRODUCT_MENOS_50K,
-          relationship: "Potentially interested",
-          quantity: 1,
-          price: {
-            currency_shortname: "BRL",
-            amount: "1",
-          },
-        },
-      ];
-    }
-
-    if (FATURAMENTO_ACIMA_50K.includes(form.faturamento)) {
-      return [
-        {
-          id: PRODUCT_ACIMA_50K,
-          relationship: "Potentially interested",
-          quantity: 1,
-          price: {
-            currency_shortname: "BRL",
-            amount: "1",
-          },
-        },
-      ];
-    }
-
-    return [];
-  };
-
-  const buildAccountRequest = () => {
-    const payload: Record<string, any> = {
-      method: "newAccount",
-      params: {
-        account: {
-          name: form.empresa,
-        },
-      },
-    };
-
-    if (!form.empresa.trim()) {
-      delete payload.params.account.name;
-    }
-
-    return payload;
-  };
-
-  const buildContactRequest = () => {
-    const payload: Record<string, any> = {
-      method: "newContact",
-      params: {
-        contact: {
-          firstName: form.nome,
-          email: form.email.trim() ? [form.email.trim()] : undefined,
-          phone: form.telefone.trim() ? [form.telefone.trim()] : undefined,
-          accounts: [
-            {
-              relationship: "Empresa relacionada",
-              id: "ID_DA_COMPANY", // Placeholder, deve ser substituído pelo ID real da company criada
-            },
-          ],
-        },
-      },
-    };
-
-    if (!form.nome.trim()) {
-      delete payload.params.contact.firstName;
-    }
-
-    if (!form.email.trim()) {
-      delete payload.params.contact.email;
-    }
-
-    if (!form.telefone.trim()) {
-      delete payload.params.contact.phone;
-    }
-
-    return payload;
-  };
-
-  const buildLeadRequest = () => {
-    const products = getLeadProducts();
-    const amount = getLeadAmount();
-
-    const payload: Record<string, any> = {
-      method: "newLead",
-      params: {
-        lead: {
-          description: form.nome,
-
-          // MOCK: pipeline fixa para estudo
-          stagesetId: PIPELINE_ID,
-
-          // MOCK: este campo sera preenchido com o id real da company apos o newAccount
-          primaryAccount: {
-            id: "ID MOCADO",
-          },
-
-          // MOCK: este campo sera preenchido com o id real do contact apos o newContact
-          contacts: [
-            {
-              id: "ID MOCADO",
-            },
-          ],
-
-          value: {
-            currency: "BRL",
-            amount,
-          },
-
-          products,
-        },
-      },
-    };
-
-    if (!form.nome.trim()) {
-      delete payload.params.lead.description;
-    }
-
-    if (!products.length) {
-      delete payload.params.lead.products;
-    }
-
-    return payload;
-  };
-
-  const previewPayload = useMemo(
-    () => ({
-      accountRequest: buildAccountRequest(),
-      contactRequest: buildContactRequest(),
-      leadRequest: buildLeadRequest(),
-    }),
-    [form],
-  );
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const payloads = {
-      accountRequest: buildAccountRequest(),
-      contactRequest: buildContactRequest(),
-      leadRequest: buildLeadRequest(),
-    };
+    setStatusMessage("");
 
-    if (onSubmit) {
-      onSubmit(payloads);
+    if (
+      !form.nome.trim() ||
+      !form.email.trim() ||
+      !form.telefone.trim() ||
+      !form.empresa.trim() ||
+      !form.faturamento.trim()
+    ) {
+      setStatusMessage("Preencha todos os campos antes de enviar.");
+      return;
     }
 
-    setStatusMessage(
-      "Payloads preparados com sucesso. Os ids reais de company e contact devem ser inseridos na etapa da API, apos a criacao.",
-    );
+    try {
+      setIsLoading(true);
+
+      const result = await createLeadFlow(form);
+
+      setStatusMessage(
+        `Fluxo concluído com sucesso. Company ID: ${result.companyId} | Contact ID: ${result.contactId} | Lead ID: ${result.leadId}`,
+      );
+
+      setForm({
+        nome: "",
+        email: "",
+        telefone: "",
+        empresa: "",
+        faturamento: "",
+      });
+    } catch (error: any) {
+      const message =
+        error?.message ||
+        error?.error?.message ||
+        JSON.stringify(error) ||
+        "Erro ao criar lead";
+
+      setStatusMessage(`Erro: ${message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="bg-gray-900 rounded-lg shadow-lg p-8 max-w-4xl mx-auto">
+    <div className="bg-gray-900 rounded-lg shadow-lg p-8 max-w-2xl mx-auto">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <h2 className="text-2xl font-bold text-yellow-400 mb-2">
-          Formulário de Treino - Fluxo Real Nutshell
+          Formulário - Criação de Lead na Nutshell
         </h2>
 
         <p className="text-sm text-purple-300 mb-4">
-          Este formulário prepara os payloads necessários para criar Company,
-          Contact e Lead.
+          Este formulário cria Company, Contact e Lead em sequência.
         </p>
 
         <label className="text-yellow-400">Nome</label>
@@ -283,46 +150,18 @@ const LeadForm: React.FC<LeadFormProps> = ({ onSubmit }) => {
 
         <button
           type="submit"
-          className="mt-6 bg-purple-700 hover:bg-yellow-400 hover:text-gray-900 hover:cursor-pointer text-white font-bold py-3 px-6 rounded-lg transition mx-auto w-1/2"
+          disabled={isLoading}
+          className="mt-6 bg-purple-700 hover:bg-yellow-400 hover:text-gray-900 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg transition mx-auto w-1/2"
         >
-          Preparar payloads
+          {isLoading ? "Enviando..." : "Criar lead"}
         </button>
       </form>
 
       {statusMessage && (
-        <div className="mt-6 border border-green-700 bg-green-900/20 rounded-lg p-4 text-green-300">
+        <div className="mt-6 border border-green-700 bg-green-900/20 rounded-lg p-4 text-green-300 whitespace-pre-wrap">
           {statusMessage}
         </div>
       )}
-
-      <div className="mt-10 space-y-6">
-        <div>
-          <h3 className="text-xl font-bold text-yellow-400 mb-3">
-            Preview - newAccount
-          </h3>
-          <pre className="bg-black/40 border border-purple-700 rounded-lg p-4 text-sm text-green-300 overflow-x-auto whitespace-pre-wrap">
-            {JSON.stringify(previewPayload.accountRequest, null, 2)}
-          </pre>
-        </div>
-
-        <div>
-          <h3 className="text-xl font-bold text-yellow-400 mb-3">
-            Preview - newContact
-          </h3>
-          <pre className="bg-black/40 border border-purple-700 rounded-lg p-4 text-sm text-green-300 overflow-x-auto whitespace-pre-wrap">
-            {JSON.stringify(previewPayload.contactRequest, null, 2)}
-          </pre>
-        </div>
-
-        <div>
-          <h3 className="text-xl font-bold text-yellow-400 mb-3">
-            Preview - newLead
-          </h3>
-          <pre className="bg-black/40 border border-purple-700 rounded-lg p-4 text-sm text-green-300 overflow-x-auto whitespace-pre-wrap">
-            {JSON.stringify(previewPayload.leadRequest, null, 2)}
-          </pre>
-        </div>
-      </div>
     </div>
   );
 };
