@@ -23,9 +23,6 @@ function App() {
 
   return (
     <div className="bg-gray-900">
-      <h1 className="text-4xl text-white font-bold pt-6 text-center">
-        Criar Lead
-      </h1>
       <LeadForm onSubmit={handleSubmit} />
       {loading && <p className="text-blue-500 mt-4">Enviando...</p>}
       {success && <p className="text-green-600 mt-4">{success}</p>}
