@@ -15,7 +15,7 @@ The React Compiler is not enabled on this template because of its impact on dev 
 
 If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-```js
+````js
 export default defineConfig([
   globalIgnores(["dist"]),
   {
@@ -41,7 +41,41 @@ export default defineConfig([
     },
   },
 ]);
-```
+
+## Deploy na Vercel
+
+1. Acesse [vercel.com](https://vercel.com/) e crie uma conta (ou faça login).
+2. Conecte seu repositório (GitHub, GitLab ou Bitbucket) à Vercel.
+3. Crie um novo projeto e selecione o repositório deste projeto.
+4. Vercel detecta automaticamente projetos Vite/React. Confirme:
+  - **Comando de build:** `vite build`
+  - **Diretório de saída:** `dist`
+5. Clique em Deploy. O site será publicado em um domínio *.vercel.app.
+
+### Deploy manual (opcional)
+Se preferir, instale a CLI da Vercel:
+```bash
+npm install -g vercel
+vercel
+````
+
+Siga as instruções para publicar manualmente.
+
+### Variáveis de ambiente
+
+Configure variáveis de ambiente na dashboard da Vercel, caso use APIs externas.
+
+### Domínio personalizado
+
+Adicione um domínio próprio na dashboard da Vercel (opcional).
+
+---
+
+Remova arquivos/configurações do Heroku (ex: Procfile) — não são necessários na Vercel.
+
+---
+
+Seu projeto está pronto para deploy moderno e automatizado!
 
 You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
