@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import crypto from "crypto";
+import { createHash } from "node:crypto";
 import {
   FATURAMENTO_VALIDOS,
   VENDE_VALIDOS,
@@ -115,7 +115,7 @@ function getClientIp(req: VercelRequest) {
 
 function hashUserAgent(userAgent: string) {
   if (!userAgent) return "";
-  return crypto.createHash("sha256").update(userAgent).digest("hex");
+  return createHash("sha256").update(userAgent).digest("hex");
 }
 
 function buildBasicAuthHeader() {
@@ -147,7 +147,17 @@ async function nutshellRequest(
     }),
   });
 
-  const data = await response.json();
+  const rawText = await response.text();
+
+  let data: any = null;
+
+  try {
+    data = rawText ? JSON.parse(rawText) : null;
+  } catch {
+    throw new Error(
+      `Resposta inválida da Nutshell. HTTP ${response.status}. Body: ${rawText}`,
+    );
+  }
 
   if (!response.ok) {
     throw new Error(data?.error?.message || `Erro HTTP ${response.status}`);
@@ -377,6 +387,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       leadResult,
     });
   } catch (error: any) {
+    console.error("Erro na Vercel Function /api/create-lead:", error);
+
     return res.status(500).json({
       error: error?.message || "Erro ao executar fluxo de criação na Nutshell.",
     });
