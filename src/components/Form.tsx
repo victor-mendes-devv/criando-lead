@@ -1,9 +1,5 @@
 import React, { useState } from "react";
 import { createLeadFlow } from "../services/api";
-import {
-  FATURAMENTO_OPTIONS,
-  VENDE_NO_ML_OPTIONS,
-} from "../../constants/leadOptions";
 
 interface FormState {
   nome: string;
@@ -13,6 +9,16 @@ interface FormState {
   faturamento: string;
   vende_no_ml: string;
 }
+
+const FATURAMENTO_OPTIONS = [
+  "- 50MIL",
+  "ACIMA DE 1 MILHAO",
+  "NAO TEM",
+  "50 MIL A 250 MIL",
+  "250 MIL A 1 MILHAO",
+];
+
+const VENDE_NO_ML_OPTIONS = ["SIM", "NAO"];
 
 const getCookie = (name: string) => {
   const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));

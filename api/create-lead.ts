@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createHash } from "node:crypto";
-import { FATURAMENTO_VALIDOS, VENDE_VALIDOS } from "../constants/leadOptions";
 
 const API_URL = process.env.NUTSHELL_API_URL;
 const API_USERNAME = process.env.NUTSHELL_USERNAME;
@@ -13,6 +12,16 @@ const PRODUCT_MENOS_50K = 407;
 // Lógica de aprendizado:
 // se não houver sourceId e campaign na rota, consideramos que veio da home
 const DEFAULT_PAGINA = "home";
+
+const FATURAMENTO_VALIDOS = [
+  "- 50MIL",
+  "ACIMA DE 1 MILHAO",
+  "NAO TEM",
+  "50 MIL A 250 MIL",
+  "250 MIL A 1 MILHAO",
+];
+
+const VENDE_VALIDOS = ["SIM", "NAO"];
 
 const FATURAMENTO_ACIMA_50K = [
   "50 MIL A 250 MIL",
