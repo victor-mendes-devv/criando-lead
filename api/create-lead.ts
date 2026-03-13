@@ -31,6 +31,20 @@ const FATURAMENTO_ACIMA_50K = [
 
 const FATURAMENTO_MENOS_50K = ["- 50MIL", "NAO TEM"];
 
+// Round Robin:
+// ordem de distribuição da lead
+const ROUND_ROBIN_ASSIGNEES = [
+  { id: 127, nome: "Sales Ops" },
+  { id: 203, nome: "Atendimento Mamba" },
+  { id: 27, nome: "Rafael Henriques" },
+];
+
+// ATENCAO:
+// isso é apenas uma implementação simples em memória.
+// Em produção/serverless na Vercel, isso pode resetar.
+// O próximo passo ideal é persistir esse índice em KV/Redis/banco.
+let roundRobinIndex = 0;
+
 type LeadFormData = {
   nome: string;
   email: string;
@@ -48,6 +62,11 @@ type OriginConfig = {
   sourceId: number | null;
   campaign: string | null;
   pagina: string | null;
+};
+
+type RoundRobinAssignee = {
+  id: number;
+  nome: string;
 };
 
 function getLeadAmount(faturamento: string) {
@@ -86,23 +105,12 @@ function getLeadProducts(faturamento: string) {
   return [];
 }
 
-function getAssigneeIdByFaturamento(faturamento: string) {
-  if (faturamento === "ACIMA DE 1 MILHAO") {
-    return 27; // Rafael Henriques
-  }
+function getNextRoundRobinAssignee(): RoundRobinAssignee {
+  const currentAssignee = ROUND_ROBIN_ASSIGNEES[roundRobinIndex];
 
-  if (
-    faturamento === "50 MIL A 250 MIL" ||
-    faturamento === "250 MIL A 1 MILHAO"
-  ) {
-    return 127; // Sales Ops
-  }
+  roundRobinIndex = (roundRobinIndex + 1) % ROUND_ROBIN_ASSIGNEES.length;
 
-  if (faturamento === "- 50MIL" || faturamento === "NAO TEM") {
-    return 203; // Atendimento Mamba
-  }
-
-  return 127;
+  return currentAssignee;
 }
 
 function getClientIp(req: VercelRequest) {
@@ -265,10 +273,10 @@ function buildLeadParams(
   companyId: number,
   contactId: number,
   originConfig: OriginConfig,
+  assignee: RoundRobinAssignee,
 ) {
   const products = getLeadProducts(form.faturamento);
   const amount = getLeadAmount(form.faturamento);
-  const assigneeId = getAssigneeIdByFaturamento(form.faturamento);
 
   const lead: Record<string, unknown> = {
     description: form.nome.trim(),
@@ -283,7 +291,7 @@ function buildLeadParams(
     ],
     assignee: {
       entityType: "Users",
-      id: assigneeId,
+      id: assignee.id,
     },
     value: {
       currency: "BRL",
@@ -322,8 +330,9 @@ function validateForm(form: Partial<LeadFormData>) {
   if (!form.telefone?.trim()) return "Telefone é obrigatório.";
   if (!form.empresa?.trim()) return "Empresa é obrigatória.";
   if (!form.faturamento?.trim()) return "Faturamento é obrigatório.";
-  if (!form.vende_no_ml?.trim())
+  if (!form.vende_no_ml?.trim()) {
     return "O campo 'Já vende no ML?' é obrigatório.";
+  }
 
   if (!FATURAMENTO_VALIDOS.includes(form.faturamento)) {
     return `Valor inválido para FATURAMENTO2: '${form.faturamento}'`;
@@ -350,6 +359,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const originConfig = getOriginConfig(req);
+    const assignee = getNextRoundRobinAssignee();
 
     const accountResult = await nutshellRequest(
       "newAccount",
@@ -373,7 +383,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const leadResult = await nutshellRequest(
       "newLead",
-      buildLeadParams(form, Number(companyId), Number(contactId), originConfig),
+      buildLeadParams(
+        form,
+        Number(companyId),
+        Number(contactId),
+        originConfig,
+        assignee,
+      ),
     );
     const leadId = leadResult?.id;
 
@@ -386,7 +402,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       companyId,
       contactId,
       leadId,
-      assigneeId: getAssigneeIdByFaturamento(form.faturamento),
+      assigneeId: assignee.id,
+      assigneeNome: assignee.nome,
+      nextRoundRobinIndex: roundRobinIndex,
       originConfig,
       accountResult,
       contactResult,
