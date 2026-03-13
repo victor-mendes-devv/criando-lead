@@ -3,7 +3,7 @@ import { createLeadFlow } from "../services/api";
 import {
   FATURAMENTO_OPTIONS,
   VENDE_NO_ML_OPTIONS,
-} from "../constants/leadOptions";
+} from "../../constants/leadOptions";
 
 interface FormState {
   nome: string;

@@ -1,9 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createHash } from "node:crypto";
-import {
-  FATURAMENTO_VALIDOS,
-  VENDE_VALIDOS,
-} from "../src/constants/leadOptions";
+import { FATURAMENTO_VALIDOS, VENDE_VALIDOS } from "../constants/leadOptions";
 
 const API_URL = process.env.NUTSHELL_API_URL;
 const API_USERNAME = process.env.NUTSHELL_USERNAME;
