@@ -1,107 +1,106 @@
-# React + TypeScript + Vite
+# Criando Lead (Nutshell)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este repositório contém um formulário React + TypeScript + Vite que envia dados para uma função de API (rodando em Vercel) e cria **Company + Contact + Lead** no Nutshell via API.
 
-Currently, two official plugins are available:
+O fluxo principal está em:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Frontend:** `src/components/Form.tsx`
+- **API (backend):** `api/create-lead.ts`
 
-## React Compiler
+## 🧪 Rodando localmente
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 1) Instalar dependências
 
-## Expanding the ESLint configuration
+```bash
+npm install
+```
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 2) Variáveis de ambiente
 
-````js
-export default defineConfig([
-  globalIgnores(["dist"]),
-  {
-    files: ["**/*.{ts,tsx}"],
-    extends: [
-      // Other configs...
+Crie um arquivo `.env` na raiz do projeto (não commitá-lo) com:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+```
+NUTSHELL_API_URL=https://api.nutshell.com/v1/json
+NUTSHELL_USERNAME=seu_usuario
+NUTSHELL_PASSWORD=sua_senha
+```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+> 🔒 Essas variáveis também devem ser configuradas no painel do Vercel para o deploy em produção.
 
-## Deploy na Vercel
+### 3) Iniciar o servidor de desenvolvimento
 
-1. Acesse [vercel.com](https://vercel.com/) e crie uma conta (ou faça login).
-2. Conecte seu repositório (GitHub, GitLab ou Bitbucket) à Vercel.
-3. Crie um novo projeto e selecione o repositório deste projeto.
-4. Vercel detecta automaticamente projetos Vite/React. Confirme:
-  - **Comando de build:** `vite build`
-  - **Diretório de saída:** `dist`
-5. Clique em Deploy. O site será publicado em um domínio *.vercel.app.
+```bash
+npm run dev
+```
 
-### Deploy manual (opcional)
-Se preferir, instale a CLI da Vercel:
+Acesse `http://localhost:5173` (ou a porta mostrada no terminal).
+
+---
+
+## ✅ Como funciona o fluxo de criação de Lead
+
+1. O usuário preenche o formulário na interface.
+2. O frontend envia um POST para `/api/create-lead` com os dados do formulário.
+3. O endpoint cria, em sequência:
+   - uma **Company** (conta)
+   - um **Contact** vinculado à Company
+   - um **Lead** vinculado à Company + Contact
+4. A resposta retorna os IDs gerados e mensagens de sucesso/erro.
+
+---
+
+## 🧩 Opções de faturamento e "venda no ML"
+
+As opções válidas do formulário e da validação de backend estão centralizadas em:
+
+- `src/constants/leadOptions.ts`
+
+Isso evita divergência entre frontend e backend e garante que o valor enviado seja sempre aceito.
+
+---
+
+## 🚀 Deploy para Vercel
+
+### 1) Configurar o projeto
+
+- Conecte seu repositório à Vercel.
+- Vercel detecta automaticamente o projeto Vite/React.
+
+### 2) Variáveis de ambiente (obrigatórias)
+
+No painel da Vercel, adicione as mesmas variáveis definidas em `.env`:
+
+- `NUTSHELL_API_URL`
+- `NUTSHELL_USERNAME`
+- `NUTSHELL_PASSWORD`
+
+### 3) Deploy
+
+Você pode usar a CLI:
+
 ```bash
 npm install -g vercel
-vercel
-````
-
-Siga as instruções para publicar manualmente.
-
-### Variáveis de ambiente
-
-Configure variáveis de ambiente na dashboard da Vercel, caso use APIs externas.
-
-### Domínio personalizado
-
-Adicione um domínio próprio na dashboard da Vercel (opcional).
-
----
-
-Remova arquivos/configurações do Heroku (ex: Procfile) — não são necessários na Vercel.
-
----
-
-Seu projeto está pronto para deploy moderno e automatizado!
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from "eslint-plugin-react-x";
-import reactDom from "eslint-plugin-react-dom";
-
-export default defineConfig([
-  globalIgnores(["dist"]),
-  {
-    files: ["**/*.{ts,tsx}"],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs["recommended-typescript"],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+vercel --prod
 ```
+
+Ou deploy automático pelos commits na branch principal.
+
+---
+
+## 🧰 Scripts úteis
+
+- `npm run dev` — roda o servidor de desenvolvimento
+- `npm run build` — compila para produção (gera `dist/`)
+- `npm run preview` — pré-visualiza a build de produção
+- `npm run lint` — roda o ESLint
+
+---
+
+## 📌 Observações
+
+- O projeto é escrito em **TypeScript** e usa **Vite + React 19**.
+- A função de API usa a lib do Vercel (`@vercel/node`) para rodar como serverless.
+
+---
+
+Se precisar de ajuda para ajustar configurações do Nutshell ou do deploy, é só avisar!
