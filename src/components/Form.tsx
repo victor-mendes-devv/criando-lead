@@ -1,5 +1,9 @@
 import React, { useState } from "react";
 import { createLeadFlow } from "../services/api";
+import {
+  FATURAMENTO_OPTIONS,
+  VENDE_NO_ML_OPTIONS,
+} from "../constants/leadOptions";
 
 interface FormState {
   nome: string;
@@ -7,15 +11,14 @@ interface FormState {
   telefone: string;
   empresa: string;
   faturamento: string;
+  vende_no_ml: string;
 }
 
-const FATURAMENTO_OPTIONS = [
-  "- 50MIL",
-  "50 MIL A 250 MIL",
-  "250 MIL A 1 MILHAO",
-  "ACIMA DE 1 MILHAO",
-  "NAO TEM",
-];
+const getCookie = (name: string) => {
+  const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+
+  return match ? decodeURIComponent(match[2]) : "";
+};
 
 const LeadForm: React.FC = () => {
   const [form, setForm] = useState<FormState>({
@@ -24,6 +27,7 @@ const LeadForm: React.FC = () => {
     telefone: "",
     empresa: "",
     faturamento: "",
+    vende_no_ml: "",
   });
 
   const [statusMessage, setStatusMessage] = useState("");
@@ -50,7 +54,8 @@ const LeadForm: React.FC = () => {
       !form.email.trim() ||
       !form.telefone.trim() ||
       !form.empresa.trim() ||
-      !form.faturamento.trim()
+      !form.faturamento.trim() ||
+      !form.vende_no_ml.trim()
     ) {
       setStatusMessage("Preencha todos os campos antes de enviar.");
       return;
@@ -59,7 +64,14 @@ const LeadForm: React.FC = () => {
     try {
       setIsLoading(true);
 
-      const result = await createLeadFlow(form);
+      const payload = {
+        ...form,
+        user_agent: navigator.userAgent,
+        _fbc: getCookie("_fbc"),
+        _fbp: getCookie("_fbp"),
+      };
+
+      const result = await createLeadFlow(payload);
 
       setStatusMessage(
         `Fluxo concluído com sucesso. Company ID: ${result.companyId} | Contact ID: ${result.contactId} | Lead ID: ${result.leadId}`,
@@ -71,6 +83,7 @@ const LeadForm: React.FC = () => {
         telefone: "",
         empresa: "",
         faturamento: "",
+        vende_no_ml: "",
       });
     } catch (error: any) {
       const message =
@@ -142,6 +155,21 @@ const LeadForm: React.FC = () => {
         >
           <option value="">Selecione o faturamento</option>
           {FATURAMENTO_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+
+        <label className="text-yellow-400">Já vende no ML?</label>
+        <select
+          name="vende_no_ml"
+          value={form.vende_no_ml}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-700 bg-gray-900 text-purple-300 border-purple-700"
+        >
+          <option value="">Selecione uma opção</option>
+          {VENDE_NO_ML_OPTIONS.map((option) => (
             <option key={option} value={option}>
               {option}
             </option>

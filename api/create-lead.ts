@@ -1,4 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import crypto from "crypto";
+import {
+  FATURAMENTO_VALIDOS,
+  VENDE_VALIDOS,
+} from "../src/constants/leadOptions";
 
 const API_URL = process.env.NUTSHELL_API_URL;
 const API_USERNAME = process.env.NUTSHELL_USERNAME;
@@ -7,6 +12,10 @@ const API_PASSWORD = process.env.NUTSHELL_PASSWORD;
 const PIPELINE_ID = 23;
 const PRODUCT_ACIMA_50K = 403;
 const PRODUCT_MENOS_50K = 407;
+
+// Lógica de aprendizado:
+// se não houver sourceId e campaign na rota, consideramos que veio da home
+const DEFAULT_PAGINA = "home";
 
 const FATURAMENTO_ACIMA_50K = [
   "50 MIL A 250 MIL",
@@ -22,6 +31,17 @@ type LeadFormData = {
   telefone: string;
   empresa: string;
   faturamento: string;
+  vende_no_ml: string;
+  user_agent: string;
+  _fbc: string;
+  _fbp: string;
+};
+
+type OriginConfig = {
+  useSourceAndCampaign: boolean;
+  sourceId: number | null;
+  campaign: string | null;
+  pagina: string | null;
 };
 
 function getLeadAmount(faturamento: string) {
@@ -58,6 +78,44 @@ function getLeadProducts(faturamento: string) {
   }
 
   return [];
+}
+
+function getAssigneeIdByFaturamento(faturamento: string) {
+  if (faturamento === "ACIMA DE 1 MILHAO") {
+    return 27; // Rafael Henriques
+  }
+
+  if (
+    faturamento === "50 MIL A 250 MIL" ||
+    faturamento === "250 MIL A 1 MILHAO"
+  ) {
+    return 127; // Sales Ops
+  }
+
+  if (faturamento === "- 50MIL" || faturamento === "NAO TEM") {
+    return 203; // Atendimento Mamba
+  }
+
+  return 127;
+}
+
+function getClientIp(req: VercelRequest) {
+  const forwardedFor = req.headers["x-forwarded-for"];
+
+  if (typeof forwardedFor === "string" && forwardedFor.length > 0) {
+    return forwardedFor.split(",")[0].trim();
+  }
+
+  if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
+    return forwardedFor[0];
+  }
+
+  return req.socket?.remoteAddress || "";
+}
+
+function hashUserAgent(userAgent: string) {
+  if (!userAgent) return "";
+  return crypto.createHash("sha256").update(userAgent).digest("hex");
 }
 
 function buildBasicAuthHeader() {
@@ -102,10 +160,64 @@ async function nutshellRequest(
   return data?.result;
 }
 
-function buildAccountParams(form: LeadFormData) {
+function getSingleQueryParam(
+  value: string | string[] | undefined,
+): string | null {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+
+  if (Array.isArray(value) && value.length > 0 && value[0]?.trim()) {
+    return value[0].trim();
+  }
+
+  return null;
+}
+
+function getOriginConfig(req: VercelRequest): OriginConfig {
+  const sourceIdParam = getSingleQueryParam(req.query.sourceId);
+  const campaignParam = getSingleQueryParam(req.query.campaign);
+
+  const parsedSourceId = sourceIdParam ? Number(sourceIdParam) : null;
+  const hasValidSourceId =
+    parsedSourceId !== null && !Number.isNaN(parsedSourceId);
+  const hasCampaign = Boolean(campaignParam);
+
+  const useSourceAndCampaign = hasValidSourceId && hasCampaign;
+
+  return {
+    useSourceAndCampaign,
+    sourceId: useSourceAndCampaign ? parsedSourceId : null,
+    campaign: useSourceAndCampaign ? campaignParam : null,
+    pagina: useSourceAndCampaign ? null : DEFAULT_PAGINA,
+  };
+}
+
+function buildAccountParams(
+  form: LeadFormData,
+  req: VercelRequest,
+  originConfig: OriginConfig,
+) {
+  const clientIp = getClientIp(req);
+  const userAgentHash = hashUserAgent(form.user_agent);
+
+  const customFields: Record<string, unknown> = {
+    FATURAMENTO2: form.faturamento,
+    "JA VENDE NO ML?": form.vende_no_ml,
+    "IP do Cliente": clientIp,
+    "User Agent": userAgentHash,
+    _fbc: form._fbc || "",
+    _fbp: form._fbp || "",
+  };
+
+  if (originConfig.pagina) {
+    customFields.PAGINA = originConfig.pagina;
+  }
+
   return {
     account: {
       name: form.empresa.trim(),
+      customFields,
     },
   };
 }
@@ -136,9 +248,11 @@ function buildLeadParams(
   form: LeadFormData,
   companyId: number,
   contactId: number,
+  originConfig: OriginConfig,
 ) {
   const products = getLeadProducts(form.faturamento);
   const amount = getLeadAmount(form.faturamento);
+  const assigneeId = getAssigneeIdByFaturamento(form.faturamento);
 
   const lead: Record<string, unknown> = {
     description: form.nome.trim(),
@@ -151,6 +265,10 @@ function buildLeadParams(
         id: contactId,
       },
     ],
+    assignee: {
+      entityType: "Users",
+      id: assigneeId,
+    },
     value: {
       currency: "BRL",
       amount,
@@ -159,6 +277,24 @@ function buildLeadParams(
 
   if (products.length) {
     lead.products = products;
+  }
+
+  if (originConfig.useSourceAndCampaign) {
+    lead.sources = [
+      {
+        id: originConfig.sourceId,
+      },
+    ];
+
+    lead.customFields = {
+      Campaign: originConfig.campaign,
+    };
+  }
+
+  if (originConfig.pagina) {
+    lead.note = [
+      `Origem sem source/campaign. Considerado como pagina: ${originConfig.pagina}`,
+    ];
   }
 
   return { lead };
@@ -170,6 +306,17 @@ function validateForm(form: Partial<LeadFormData>) {
   if (!form.telefone?.trim()) return "Telefone é obrigatório.";
   if (!form.empresa?.trim()) return "Empresa é obrigatória.";
   if (!form.faturamento?.trim()) return "Faturamento é obrigatório.";
+  if (!form.vende_no_ml?.trim())
+    return "O campo 'Já vende no ML?' é obrigatório.";
+
+  if (!FATURAMENTO_VALIDOS.includes(form.faturamento)) {
+    return `Valor inválido para FATURAMENTO2: '${form.faturamento}'`;
+  }
+
+  if (!VENDE_VALIDOS.includes(form.vende_no_ml)) {
+    return `Valor inválido para VENDE2: '${form.vende_no_ml}'`;
+  }
+
   return null;
 }
 
@@ -186,9 +333,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: validationError });
     }
 
+    const originConfig = getOriginConfig(req);
+
     const accountResult = await nutshellRequest(
       "newAccount",
-      buildAccountParams(form),
+      buildAccountParams(form, req, originConfig),
     );
     const companyId = accountResult?.id;
 
@@ -208,7 +357,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const leadResult = await nutshellRequest(
       "newLead",
-      buildLeadParams(form, Number(companyId), Number(contactId)),
+      buildLeadParams(form, Number(companyId), Number(contactId), originConfig),
     );
     const leadId = leadResult?.id;
 
@@ -221,6 +370,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       companyId,
       contactId,
       leadId,
+      assigneeId: getAssigneeIdByFaturamento(form.faturamento),
+      originConfig,
       accountResult,
       contactResult,
       leadResult,

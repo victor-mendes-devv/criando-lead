@@ -4,9 +4,26 @@ export interface LeadFormData {
   telefone: string;
   empresa: string;
   faturamento: string;
+  vende_no_ml: string;
+  user_agent: string;
+  _fbc: string;
+  _fbp: string;
 }
 
-export const createLeadFlow = async (form: LeadFormData) => {
+export interface CreateLeadFlowResponse {
+  success: boolean;
+  companyId: number | string;
+  contactId: number | string;
+  leadId: number | string;
+  accountResult?: unknown;
+  contactResult?: unknown;
+  leadResult?: unknown;
+  error?: string;
+}
+
+export const createLeadFlow = async (
+  form: LeadFormData,
+): Promise<CreateLeadFlowResponse> => {
   const response = await fetch("/api/create-lead", {
     method: "POST",
     headers: {
@@ -15,7 +32,7 @@ export const createLeadFlow = async (form: LeadFormData) => {
     body: JSON.stringify(form),
   });
 
-  const data = await response.json();
+  const data: CreateLeadFlowResponse = await response.json();
 
   if (!response.ok) {
     throw new Error(data?.error || "Erro ao criar lead.");
