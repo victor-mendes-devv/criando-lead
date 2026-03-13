@@ -11,11 +11,11 @@ interface FormState {
 }
 
 const FATURAMENTO_OPTIONS = [
-  "- 50MIL",
-  "ACIMA DE 1 MILHAO",
   "NAO TEM",
+  "- 50MIL",
   "50 MIL A 250 MIL",
   "250 MIL A 1 MILHAO",
+  "ACIMA DE 1 MILHAO",
 ];
 
 const VENDE_NO_ML_OPTIONS = ["SIM", "NAO"];
